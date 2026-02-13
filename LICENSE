@@ -24,7 +24,7 @@ IN THE SOFTWARE.
 
 Third-Party Acknowledgments
 
-meshmonitor-llm-bridge is an independent, open-source project designed to integrate with:
+LLM Bridge is an independent, open-source project designed to integrate with:
 
 - MeshMonitor (by Yeraze)
 - Meshtastic (open-source LoRa mesh networking platform)
