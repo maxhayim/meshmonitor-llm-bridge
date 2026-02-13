@@ -266,14 +266,6 @@ Then test with curl or wget to your configured endpoint.
 
 ---
 
-## Inspiration & references
-
-- MeshMonitor by Yeraze (https://github.com/Yeraze)
-- Meshtastic MQTT architecture
-- Local-first LLM deployments (OpenClaw, Ollama)
-
----
-
 ## License
 
 MIT License
