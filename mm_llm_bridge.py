@@ -1,13 +1,26 @@
 #!/usr/bin/env python3
-# mm_llm_bridge.py
-#
-# MeshMonitor Script: LLM Bridge
-# - Parses incoming messages for a trigger (e.g. "!ask", "@claw", "@ai")
-# - Sends prompt to a configured LLM provider (OpenClaw / Ollama / OpenAI-compatible)
-# - Returns responses split to fit MeshMonitor + Meshtastic-safe limits
-#
-# Output contract:
-# - Print JSON to stdout with "response" (string) or "responses" (list of strings)
+# mm_meta:
+#   name: LLM Bridge
+#   emoji: 📡🧠
+#   language: Python
+#   description: Interact with your chosen LLM over Meshtastic.
+__version__ = "1.0.0"
+
+"""
+mm_llm_bridge.py
+
+MeshMonitor Script: LLM Bridge
+- Parses incoming messages for a trigger (e.g. "!ask", "@claw", "@ai")
+- Sends prompt to a configured LLM provider (OpenClaw / Ollama / OpenAI-compatible)
+- Returns responses split to fit MeshMonitor + Meshtastic-safe limits
+
+Output contract:
+- Print JSON to stdout with "response" (string) or "responses" (list of strings)
+
+Notes:
+- Keep each returned message chunk <= MAX_MSG_CHARS and <= MAX_MSG_BYTES (defaults 200/200).
+- Prefer running via MeshMonitor Auto Responder regex so the script only triggers when intended.
+"""
 
 import json
 import os
@@ -42,7 +55,7 @@ LLM_API_KEY = os.getenv("LLM_API_KEY", "").strip()
 # Keep responses short for radio text
 SYSTEM_PROMPT = os.getenv(
     "LLM_SYSTEM_PROMPT",
-    "You are a helpful assistant. Keep answers concise and suitable for short radio text messages."
+    "You are a helpful assistant. Keep answers concise and suitable for short radio text messages.",
 ).strip()
 
 # Runtime controls
@@ -64,13 +77,16 @@ TRUNCATE_WITH_ELLIPSIS = os.getenv("TRUNCATE_WITH_ELLIPSIS", "1").strip().lower(
 # Utilities
 # ----------------------------
 
+
 def out_single(msg: str) -> None:
     sys.stdout.write(json.dumps({"response": msg}, ensure_ascii=False))
     sys.stdout.flush()
 
+
 def out_multi(msgs: List[str]) -> None:
     sys.stdout.write(json.dumps({"responses": msgs}, ensure_ascii=False))
     sys.stdout.flush()
+
 
 def clamp_utf8(text: str, max_chars: int, max_bytes: int) -> str:
     """Clamp text to both max chars and UTF-8 bytes."""
@@ -81,6 +97,7 @@ def clamp_utf8(text: str, max_chars: int, max_bytes: int) -> str:
     while text and len(text.encode("utf-8")) > max_bytes:
         text = text[:-1]
     return text
+
 
 def split_meshtastic(text: str, max_chars: int, max_bytes: int) -> List[str]:
     """
@@ -98,7 +115,6 @@ def split_meshtastic(text: str, max_chars: int, max_bytes: int) -> List[str]:
     remaining = text
 
     while remaining:
-        # Candidate slice by chars, then clamp bytes
         candidate = clamp_utf8(remaining[:max_chars], max_chars, max_bytes)
         if not candidate:
             break
@@ -116,17 +132,22 @@ def split_meshtastic(text: str, max_chars: int, max_bytes: int) -> List[str]:
         part = clamp_utf8(part, max_chars, max_bytes)
         chunks.append(part)
 
-        remaining = remaining[len(part):].lstrip()
+        remaining = remaining[len(part) :].lstrip()
 
         if len(chunks) >= MAX_CHUNKS and remaining:
             if TRUNCATE_WITH_ELLIPSIS:
                 ell = "…"
                 last = chunks[-1].rstrip()
-                last = clamp_utf8(last, max_chars - len(ell), max_bytes - len(ell.encode("utf-8")))
+                last = clamp_utf8(
+                    last,
+                    max_chars - len(ell),
+                    max_bytes - len(ell.encode("utf-8")),
+                )
                 chunks[-1] = (last + ell) if last else ell
             break
 
     return chunks if chunks else [""]
+
 
 def read_stdin_json() -> Dict[str, Any]:
     raw = sys.stdin.read().strip()
@@ -135,7 +156,9 @@ def read_stdin_json() -> Dict[str, Any]:
     try:
         return json.loads(raw)
     except Exception:
+        # If MeshMonitor ever passes plain text, wrap it.
         return {"message": raw}
+
 
 def extract_message(payload: Dict[str, Any]) -> str:
     """Defensive extraction of incoming text from common MeshMonitor payload keys."""
@@ -167,6 +190,7 @@ def extract_message(payload: Dict[str, Any]) -> str:
 
     return ""
 
+
 def parse_prompt(msg: str) -> Tuple[Optional[str], Optional[str]]:
     """
     Returns (trigger, prompt) if matched; otherwise (None, None).
@@ -183,10 +207,13 @@ def parse_prompt(msg: str) -> Tuple[Optional[str], Optional[str]]:
 
     for trig in AGENT_TRIGGERS:
         if m.startswith(trig):
-            rest = m[len(trig):].strip()
-            rest = re.sub(r"^[:\-]\s*", "", rest)  # allow "@claw: hi"
+            rest = m[len(trig) :].strip()
+            # allow "@claw: hi" or "@claw- hi"
+            rest = re.sub(r"^[:\-]\s*", "", rest)
             return (trig, rest)
+
     return (None, None)
+
 
 def http_post_json(url: str, payload: Dict[str, Any], headers: Dict[str, str], timeout: float) -> Dict[str, Any]:
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -200,6 +227,7 @@ def http_post_json(url: str, payload: Dict[str, Any], headers: Dict[str, str], t
             return json.loads(body)
         except Exception:
             return {"_raw": body}
+
 
 def call_openai_compat(prompt: str) -> str:
     base = LLM_ENDPOINT.rstrip("/")
@@ -216,7 +244,7 @@ def call_openai_compat(prompt: str) -> str:
             {"role": "user", "content": prompt},
         ],
         "temperature": 0.2,
-        "max_tokens": 200,
+        "max_tokens": 220,  # kept modest to reduce latency + keep answers short
     }
 
     last_err: Optional[str] = None
@@ -242,6 +270,7 @@ def call_openai_compat(prompt: str) -> str:
 
     return f"LLM error: {last_err or 'unknown'}"
 
+
 def call_ollama(prompt: str) -> str:
     base = LLM_ENDPOINT.rstrip("/")
     url = base if base.endswith("/api/generate") else (base + "/api/generate")
@@ -255,7 +284,7 @@ def call_ollama(prompt: str) -> str:
         "prompt": prompt,
         "stream": False,
         "system": SYSTEM_PROMPT,
-        "options": {"temperature": 0.2, "num_predict": 200},
+        "options": {"temperature": 0.2, "num_predict": 220},
     }
 
     last_err: Optional[str] = None
@@ -274,18 +303,48 @@ def call_ollama(prompt: str) -> str:
 
     return f"LLM error: {last_err or 'unknown'}"
 
+
 def call_llm(prompt: str) -> str:
     if LLM_PROVIDER == "ollama":
         return call_ollama(prompt)
     return call_openai_compat(prompt)
 
+
 def help_text() -> str:
     triggers = ", ".join(AGENT_TRIGGERS)
     return f"Usage: start with {triggers}. Example: !ask What is 5x5?"
 
+
+def normalize_for_radio(text: str) -> str:
+    """Make output more radio-friendly and chunk-friendly."""
+    t = (text or "").strip()
+    # collapse repeated spaces/tabs
+    t = re.sub(r"[ \t]{2,}", " ", t)
+    # trim line noise
+    t = re.sub(r"\n{3,}", "\n\n", t)
+    return t.strip()
+
+
+def ensure_under_limits(answer: str) -> List[str]:
+    """
+    Always return chunks that satisfy limits.
+    - If SPLIT_LONG_RESPONSES: split into up to MAX_CHUNKS chunks.
+    - Else: clamp to a single chunk.
+    """
+    ans = normalize_for_radio(answer)
+    if not ans:
+        ans = "No response."
+
+    if SPLIT_LONG_RESPONSES:
+        return split_meshtastic(ans, MAX_MSG_CHARS, MAX_MSG_BYTES)
+
+    return [clamp_utf8(ans, MAX_MSG_CHARS, MAX_MSG_BYTES)]
+
+
 # ----------------------------
 # Main
 # ----------------------------
+
 
 def main() -> None:
     payload = read_stdin_json()
@@ -294,32 +353,29 @@ def main() -> None:
     trig, prompt = parse_prompt(msg_in)
 
     if trig is None:
-        out_single(clamp_utf8("No trigger. Try: !ask help", MAX_MSG_CHARS, MAX_MSG_BYTES))
+        # If your Auto Responder regex is correct, this rarely happens.
+        chunks = ensure_under_limits("No trigger. Try: !ask help")
+        out_single(chunks[0])
         return
 
     if trig == "help" or (prompt or "").strip().lower() == "help":
-        chunks = split_meshtastic(help_text(), MAX_MSG_CHARS, MAX_MSG_BYTES)
+        chunks = ensure_under_limits(help_text())
         out_single(chunks[0]) if len(chunks) == 1 else out_multi(chunks)
         return
 
     if not (prompt or "").strip():
-        out_single(clamp_utf8("Missing prompt. Try: !ask help", MAX_MSG_CHARS, MAX_MSG_BYTES))
+        chunks = ensure_under_limits("Missing prompt. Try: !ask help")
+        out_single(chunks[0])
         return
 
-    answer = (call_llm(prompt.strip()) or "").strip()
+    answer = call_llm(prompt.strip())
+    chunks = ensure_under_limits(answer)
+    out_single(chunks[0]) if len(chunks) == 1 else out_multi(chunks)
 
-    # radio-friendly whitespace normalization
-    answer = re.sub(r"[ \t]{2,}", " ", answer)
-    answer = re.sub(r"\n{3,}", "\n\n", answer).strip()
-
-    if SPLIT_LONG_RESPONSES:
-        chunks = split_meshtastic(answer, MAX_MSG_CHARS, MAX_MSG_BYTES)
-        out_single(chunks[0]) if len(chunks) == 1 else out_multi(chunks)
-    else:
-        out_single(clamp_utf8(answer, MAX_MSG_CHARS, MAX_MSG_BYTES))
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        out_single(clamp_utf8(f"Error: {e}", MAX_MSG_CHARS, MAX_MSG_BYTES))
+        chunks = ensure_under_limits(f"Error: {e}")
+        out_single(chunks[0])
