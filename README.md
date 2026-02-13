@@ -182,7 +182,7 @@ High-level flow:
 
     Meshtastic Node
           ↓
-    MeshMonitor (MQTT)
+    MeshMonitor
           ↓
     mm_llm_bridge.py
           ↓
