@@ -9,7 +9,7 @@
 
 # 📡🧠 LLM Bridge
 
-LLM Bridge is a LLM bridgefor [**MeshMonitor**](https://github.com/Yeraze/MeshMonitor) Script that allows users to interact with their chosen Large Language Model (OpenClaw, Ollama, OpenAI, etc.) over [**Meshstatic**](https://meshtastic.org/).
+**LLM Bridge** is a LLM bridgefor [**MeshMonitor**](https://github.com/Yeraze/MeshMonitor) Script that allows users to interact with their chosen Large Language Model (OpenClaw, Ollama, OpenAI, etc.) over [**Meshstatic**](https://meshtastic.org/).
 
 Each user runs their own instance and connects it to the LLM provider of their choice.
 
