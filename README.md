@@ -248,5 +248,4 @@ Pull requests are welcome. Open an issue first to discuss ideas or report bugs.<
 
 * MeshMonitor built by [Yeraze](https://github.com/Yeraze)
 
-Discover other community-contributed Auto Responder scripts for MeshMonitor:
-https://meshmonitor.org/user-scripts.html
+Discover other community-contributed scripts for MeshMonitor: https://meshmonitor.org/user-scripts.html
