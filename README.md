@@ -9,38 +9,38 @@
 
 # 📡🧠 LLM Bridge
 
-**LLM Bridge** is a LLM bridgefor [**MeshMonitor**](https://github.com/Yeraze/MeshMonitor) Script that allows users to interact with their chosen Large Language Model (OpenClaw, Ollama, OpenAI, etc.) over [**Meshstatic**](https://meshtastic.org/).
+**LLM Bridge** is a MeshMonitor script that enables interaction with your chosen Large Language Model (OpenClaw, Ollama, OpenAI-compatible APIs, etc.) over [**Meshtastic**](https://meshtastic.org/).
 
 Each user runs their own instance and connects it to the LLM provider of their choice.
 
 This repository contains:
 
-- `mm_llm_bridge.py` — the MeshMonitor script (runtime)
+- `mm_llm_bridge.py` — the MeshMonitor runtime script
 - `docs/` — GitHub Pages documentation (display only)
 
 ---
 
 ## What this does
 
-meshmonitor-llm-bridge enables:
+LLM Bridge enables:
 
 1) **Mesh → LLM**
    - Users send a command over Meshtastic
-   - MeshMonitor passes the message via MQTT
-   - The bridge forwards it to the configured LLM
-   - The response is sent back over the mesh
+   - MeshMonitor executes the script
+   - The bridge forwards the prompt to the configured LLM
+   - The response is returned back over the mesh
 
-2) **Per-user AI agents**
+2) **User-controlled AI agents**
    - Each person runs their own script
    - Each instance connects to its own LLM provider
-   - No centralized bot required
+   - No centralized AI service required
 
 Design goals:
 
 - KISS architecture
 - Provider-agnostic (OpenClaw today, something else tomorrow)
 - Lightweight responses suitable for LoRa
-- Personal deployment model (no shared cloud dependency required)
+- Safe message sizing for Meshtastic limits
 
 ---
 
@@ -48,14 +48,11 @@ Design goals:
 
     .
     ├── mm_llm_bridge.py       # Runtime script used by MeshMonitor
-    ├── providers/             # LLM provider adapters (optional)
-    │   ├── openclaw.py
-    │   ├── ollama.py
-    │   └── openai.py
     ├── docs/                  # GitHub Pages documentation
     │   ├── index.html
     │   ├── index.js
     │   └── assets/
+    ├── LICENSE
     └── README.md
 
 ---
@@ -116,23 +113,17 @@ Edit these constants near the top of the script:
 
 Required:
 
-- `LLM_PROVIDER` (openclaw / ollama / openai)
+- `LLM_PROVIDER` (openai_compat / ollama)
 - `LLM_ENDPOINT`
-- `AGENT_TRIGGER` (example: `!ask` or `@claw`)
+- `LLM_MODEL`
 
 Optional:
 
-- `MAX_RESPONSE_CHARS`
-- `REPLY_CHANNEL_MODE` (same channel or DM)
-- `ALLOWED_NODE_IDS`
+- `LLM_API_KEY`
+- `MAX_MSG_CHARS`
+- `MAX_MSG_BYTES`
 - `REQUEST_TIMEOUT_SECONDS`
-- `LLM_API_KEY` (if required)
-
-Recommended (mesh noise control):
-
-- `RATE_LIMIT_SECONDS`
-- `SPLIT_LONG_RESPONSES`
-- `TRUNCATE_STRATEGY`
+- `MAX_CHUNKS`
 
 ---
 
@@ -195,24 +186,7 @@ The bridge:
 - Parses the incoming message
 - Extracts the prompt
 - Sends it to the configured LLM
-- Returns a compact response suitable for LoRa
-
----
-
-## Per-User Deployment Model
-
-Each user:
-
-- Runs their own meshmonitor-llm-bridge
-- Connects it to their preferred LLM
-- Controls their own API keys and configuration
-- Is responsible for rate limits and usage costs (if cloud-based)
-
-This avoids:
-
-- Central AI bottlenecks
-- Shared API key exposure
-- Mesh-wide AI spam
+- Returns responses split safely within Meshtastic limits
 
 ---
 
@@ -220,14 +194,12 @@ This avoids:
 
 Minimal dependencies by design.
 
-The bridge can be implemented using:
+The bridge uses:
 
 - Python standard library (HTTP via `urllib`)
-- Optional `requests` (if preferred)
+- No external packages required
 
-No heavy frameworks required.
-
-Compatible with PEP 668 container environments.
+Compatible with containerized Python environments.
 
 ---
 
@@ -235,14 +207,11 @@ Compatible with PEP 668 container environments.
 
 Recommended:
 
-- Restrict `ALLOWED_NODE_IDS`
-- Use Direct Messages instead of public channel
-- Apply response length limits
-- Use rate limiting
+- Use Direct Messages instead of public channels
+- Apply response length limits (already enforced)
+- Avoid sending sensitive prompts over RF networks
 
-Mesh is RF — assume traffic is observable.
-
-Do not expose sensitive data through prompts.
+Meshtastic traffic may be observable. Operate accordingly.
 
 ---
 
@@ -252,17 +221,11 @@ Do not expose sensitive data through prompts.
 
     docker exec -it meshmonitor sh -lc "python3 -m py_compile /data/scripts/mm_llm_bridge.py"
 
-### Check MQTT flow
-
-Confirm MeshMonitor receives messages before debugging the LLM side.
-
 ### LLM connectivity test
 
-Test your LLM endpoint directly from inside the container:
+Enter the container and test connectivity to your configured endpoint:
 
     docker exec -it meshmonitor sh
-
-Then test with curl or wget to your configured endpoint.
 
 ---
 
@@ -277,6 +240,7 @@ Full license text: https://opensource.org/licenses/MIT
 
 ## Acknowledgments
 
-* MeshMonitor built by [Yeraze](https://github.com/Yeraze) 
+* MeshMonitor built by [Yeraze](https://github.com/Yeraze)
 
-Discover other community-contributed Auto Responder scripts for MeshMonitor [here](https://meshmonitor.org/user-scripts.html).
+Discover other community-contributed Auto Responder scripts for MeshMonitor:
+https://meshmonitor.org/user-scripts.html
