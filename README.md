@@ -278,6 +278,5 @@ Full license text: https://opensource.org/licenses/MIT
 ## Acknowledgments
 
 * MeshMonitor built by [Yeraze](https://github.com/Yeraze) 
-* Shout out to [SkywarnPlus](https://github.com/Mason10198/SkywarnPlus)
 
 Discover other community-contributed Auto Responder scripts for MeshMonitor [here](https://meshmonitor.org/user-scripts.html).
