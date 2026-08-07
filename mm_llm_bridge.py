@@ -4,7 +4,7 @@
 #   emoji: 📡🧠
 #   language: Python
 #   description: Interact with your chosen LLM over Meshtastic.
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 """
 mm_llm_bridge.py
@@ -14,12 +14,21 @@ MeshMonitor Script: LLM Bridge
 - Sends prompt to a configured LLM provider (OpenClaw / Ollama / OpenAI-compatible)
 - Returns responses split to fit MeshMonitor + Meshtastic-safe limits
 
+Input contract:
+- MeshMonitor invokes scripts as a subprocess and passes message data via
+  environment variables, not stdin/argv. The relevant variable is MESSAGE
+  (the full incoming message text). This script reads MESSAGE first.
+- For manual/local testing outside MeshMonitor, a JSON payload piped via
+  stdin (e.g. {"message": "!ask hello"}) is still accepted as a fallback.
+
 Output contract:
 - Print JSON to stdout with "response" (string) or "responses" (list of strings)
 
 Notes:
 - Keep each returned message chunk <= MAX_MSG_CHARS and <= MAX_MSG_BYTES (defaults 200/200).
 - Prefer running via MeshMonitor Auto Responder regex so the script only triggers when intended.
+- This script expects Auto Responder invocation (MESSAGE is set). Timer/geofence
+  triggers do not set MESSAGE, so there is nothing for this bridge to answer there.
 """
 
 import json
@@ -149,14 +158,22 @@ def split_meshtastic(text: str, max_chars: int, max_bytes: int) -> List[str]:
     return chunks if chunks else [""]
 
 
+def read_env_message() -> Optional[str]:
+    """MeshMonitor's actual invocation contract: message text is passed via
+    the MESSAGE environment variable, not stdin/argv."""
+    v = os.environ.get("MESSAGE", "")
+    return v.strip() if v.strip() else None
+
+
 def read_stdin_json() -> Dict[str, Any]:
+    """Fallback for manual/local testing when MESSAGE is not set."""
     raw = sys.stdin.read().strip()
     if not raw:
         return {}
     try:
         return json.loads(raw)
     except Exception:
-        # If MeshMonitor ever passes plain text, wrap it.
+        # Allow plain text piped directly on stdin too.
         return {"message": raw}
 
 
@@ -347,8 +364,10 @@ def ensure_under_limits(answer: str) -> List[str]:
 
 
 def main() -> None:
-    payload = read_stdin_json()
-    msg_in = extract_message(payload)
+    msg_in = read_env_message()
+    if msg_in is None:
+        payload = read_stdin_json()
+        msg_in = extract_message(payload)
 
     trig, prompt = parse_prompt(msg_in)
 
