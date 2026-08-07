@@ -78,6 +78,28 @@ This is the only file MeshMonitor should execute.
 
 ---
 
+## How MeshMonitor passes input to this script
+
+MeshMonitor runs scripts as a subprocess and passes message data via
+**environment variables** — not stdin and not command-line arguments.
+
+The variable this bridge needs is:
+
+- `MESSAGE` — the full incoming message text (e.g. `!ask What is 5x5?`)
+
+MeshMonitor also sets other variables depending on trigger type (`FROM_NODE`,
+`TRIGGER`, `PARAM_*` for Auto Responder; `MESHTASTIC_IP`, `GEOFENCE_*` for
+Timer/geofence triggers), but this bridge only reads `MESSAGE`.
+
+### Timer Trigger vs Auto Responder
+
+This script is built for **Auto Responder** invocation, where `MESSAGE` is
+set to the triggering message. It should not be configured as a **Timer
+Trigger** — timers run on a schedule with no incoming message, so `MESSAGE`
+is never set and there's nothing for the bridge to answer.
+
+---
+
 ## Installing mm_llm_bridge.py
 
 MeshMonitor script requirements (high level):
@@ -231,6 +253,26 @@ Meshtastic traffic may be observable. Operate accordingly.
 Enter the container and test connectivity to your configured endpoint:
 
     docker exec -it meshmonitor sh
+
+### Manual/local testing (outside MeshMonitor)
+
+MeshMonitor sets `MESSAGE` as an environment variable, so you can simulate
+that directly:
+
+    MESSAGE="!ask What is 5x5?" python3 mm_llm_bridge.py
+
+If `MESSAGE` is not set, the script falls back to reading a JSON payload
+from stdin, which is also useful for quick local checks:
+
+    echo '{"message": "!ask What is 5x5?"}' | python3 mm_llm_bridge.py
+
+### Script never responds / no output at all
+
+If you've configured an Auto Responder rule and nothing happens, confirm:
+
+- The rule's Response Type is `Script` (not `Text`)
+- The trigger regex actually matches what you're sending (e.g. `^!ask\s+(.+)$`)
+- You're testing on the channel/DM the rule is scoped to
 
 ---
 
