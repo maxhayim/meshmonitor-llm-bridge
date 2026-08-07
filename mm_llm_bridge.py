@@ -3,7 +3,7 @@
 #   name: LLM Bridge
 #   emoji: 📡🧠
 #   language: Python
-#   description: Interact with your chosen LLM over Meshtastic.
+#   description: Interact with your chosen LLM over Meshtastic, MeshCore, and more.
 __version__ = "1.0.1"
 
 """
@@ -12,7 +12,7 @@ mm_llm_bridge.py
 MeshMonitor Script: LLM Bridge
 - Parses incoming messages for a trigger (e.g. "!ask", "@claw", "@ai")
 - Sends prompt to a configured LLM provider (OpenClaw / Ollama / OpenAI-compatible)
-- Returns responses split to fit MeshMonitor + Meshtastic-safe limits
+- Returns responses split to fit MeshMonitor + mesh radio-safe limits (Meshtastic, MeshCore, and other MeshMonitor-supported networks)
 
 Input contract:
 - MeshMonitor invokes scripts as a subprocess and passes message data via
@@ -72,7 +72,8 @@ REQUEST_TIMEOUT_SECONDS = float(os.getenv("LLM_TIMEOUT", "8.0"))
 HTTP_RETRIES = int(os.getenv("HTTP_RETRIES", "2"))
 HTTP_RETRY_SLEEP_SECONDS = float(os.getenv("HTTP_RETRY_SLEEP_SECONDS", "0.5"))
 
-# Limits: keep each returned chunk under typical MeshMonitor/Meshtastic constraints
+# Limits: keep each returned chunk under typical MeshMonitor mesh radio constraints
+# (Meshtastic, MeshCore, and other MeshMonitor-supported networks)
 MAX_MSG_CHARS = int(os.getenv("MAX_MSG_CHARS", "200"))
 MAX_MSG_BYTES = int(os.getenv("MAX_MSG_BYTES", "200"))
 
@@ -108,7 +109,7 @@ def clamp_utf8(text: str, max_chars: int, max_bytes: int) -> str:
     return text
 
 
-def split_meshtastic(text: str, max_chars: int, max_bytes: int) -> List[str]:
+def split_for_radio(text: str, max_chars: int, max_bytes: int) -> List[str]:
     """
     Split into chunks that each satisfy both char and UTF-8 byte limits.
     Prefer splitting on whitespace; otherwise hard-split.
@@ -353,7 +354,7 @@ def ensure_under_limits(answer: str) -> List[str]:
         ans = "No response."
 
     if SPLIT_LONG_RESPONSES:
-        return split_meshtastic(ans, MAX_MSG_CHARS, MAX_MSG_BYTES)
+        return split_for_radio(ans, MAX_MSG_CHARS, MAX_MSG_BYTES)
 
     return [clamp_utf8(ans, MAX_MSG_CHARS, MAX_MSG_BYTES)]
 

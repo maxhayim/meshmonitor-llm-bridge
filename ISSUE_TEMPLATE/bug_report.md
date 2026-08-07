@@ -20,5 +20,6 @@ What should happen.
 ## Environment
 - LLM Provider:
 - MeshMonitor Version:
-- Meshtastic Firmware:
+- Mesh Network (Meshtastic / MeshCore / other):
+- Firmware Version:
 - Python Version:
