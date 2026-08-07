@@ -14,7 +14,7 @@
 
 # 📡🧠 LLM Bridge
 
-**LLM Bridge** is a MeshMonitor script that enables interaction with your chosen Large Language Model (OpenClaw, Ollama, OpenAI-compatible APIs, etc.) over [**Meshtastic**](https://meshtastic.org/).
+**LLM Bridge** is a MeshMonitor script that enables interaction with your chosen Large Language Model (OpenClaw, Ollama, OpenAI-compatible APIs, etc.) over [**Meshtastic**](https://meshtastic.org/), [**MeshCore**](https://meshcore.io/), and any other mesh network MeshMonitor supports.
 
 Each user runs their own instance and connects it to the LLM provider of their choice.
 
@@ -30,7 +30,7 @@ This repository contains:
 LLM Bridge enables:
 
 1) **Mesh → LLM**
-   - Users send a command over Meshtastic
+   - Users send a command over Meshtastic, MeshCore, or another MeshMonitor-connected mesh network
    - MeshMonitor executes the script
    - The bridge forwards the prompt to the configured LLM
    - The response is returned back over the mesh
@@ -45,7 +45,7 @@ Design goals:
 - KISS architecture
 - Provider-agnostic (OpenClaw today, something else tomorrow)
 - Lightweight responses suitable for LoRa
-- Safe message sizing for Meshtastic limits
+- Safe message sizing for Meshtastic/MeshCore/other mesh network limits
 
 ---
 
@@ -198,7 +198,7 @@ Script path:
 
 High-level flow:
 
-    Meshtastic Node
+    Mesh Node (Meshtastic, MeshCore, etc.)
           ↓
     MeshMonitor
           ↓
@@ -213,7 +213,7 @@ The bridge:
 - Parses the incoming message
 - Extracts the prompt
 - Sends it to the configured LLM
-- Returns responses split safely within Meshtastic limits
+- Returns responses split safely within Meshtastic/MeshCore/other mesh network limits
 
 ---
 
@@ -238,7 +238,7 @@ Recommended:
 - Apply response length limits (already enforced)
 - Avoid sending sensitive prompts over RF networks
 
-Meshtastic traffic may be observable. Operate accordingly.
+Meshtastic, MeshCore, and other mesh traffic may be observable. Operate accordingly.
 
 ---
 
