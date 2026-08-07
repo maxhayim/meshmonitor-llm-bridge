@@ -4,7 +4,7 @@
 #   emoji: 📡🧠
 #   language: Python
 #   description: Interact with your chosen LLM over Meshtastic, MeshCore, and more.
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 """
 mm_llm_bridge.py
@@ -224,8 +224,11 @@ def parse_prompt(msg: str) -> Tuple[Optional[str], Optional[str]]:
             return ("help", "")
 
     for trig in AGENT_TRIGGERS:
-        if m.startswith(trig):
-            rest = m[len(trig) :].strip()
+        trig_len = len(trig)
+        if lower.startswith(trig.lower()) and (
+            len(m) == trig_len or m[trig_len] in " :-\t"
+        ):
+            rest = m[trig_len:].strip()
             # allow "@claw: hi" or "@claw- hi"
             rest = re.sub(r"^[:\-]\s*", "", rest)
             return (trig, rest)

@@ -28,7 +28,8 @@ LLM Bridge is an independent, open-source project designed to integrate with:
 
 - MeshMonitor (by Yeraze)
 - Meshtastic (open-source LoRa mesh networking platform)
+- MeshCore (open-source LoRa mesh networking platform)
 - Various Large Language Model providers (such as OpenClaw, Ollama, OpenAI-compatible APIs)
 
 All trademarks, logos, and brand names are the property of their respective owners.
-This project is not affiliated with, endorsed by, or officially connected to MeshMonitor, Meshtastic, OpenClaw, Ollama, OpenAI, or any other referenced platform or provider.
+This project is not affiliated with, endorsed by, or officially connected to MeshMonitor, Meshtastic, MeshCore, OpenClaw, Ollama, OpenAI, or any other referenced platform or provider.
